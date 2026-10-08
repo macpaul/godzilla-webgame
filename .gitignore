@@ -1,0 +1,13 @@
+# Fair-use film stills and roar recordings pulled from Wikizilla.
+# They are art/audio *reference only* — never loaded by the game — so they
+# stay on the artist's disk instead of in the repository. Re-fetch with
+# refs/SOURCES.md, which lists every source URL.
+refs/fair-use/
+
+# Scratch / local tooling
+*.log
+.DS_Store
+node_modules/
+
+# Screenshots taken while checking a screen in the browser
+shots_*.png
