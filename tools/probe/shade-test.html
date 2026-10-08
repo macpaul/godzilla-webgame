@@ -1,0 +1,25 @@
+<!DOCTYPE html><meta charset="utf-8"><body style="background:#000;color:#bbb;font:11px monospace;white-space:pre">
+<canvas id="c" width="900" height="560"></canvas><pre id="out"></pre>
+<script src="../../js/data.js"></script>
+<script src="../../js/rig.js"></script>
+<script src="../../js/shade.js"></script>
+<script>
+const ctx=document.getElementById('c').getContext('2d');
+const out=[],errs=[];window.onerror=(m,s,l)=>errs.push(m+' @'+l);
+const blob=[[-40,0],[-46,-40],[-30,-80],[0,-96],[34,-80],[46,-36],[30,0],[0,10]];
+const kinds=['keloid','scales','plates','chitin','muscle','fur','membrane','sludge','kelp','crystal','metal','leaf','pitted',null];
+kinds.forEach((k,i)=>{
+  const x=60+(i%7)*120, y=90+Math.floor(i/7)*230;
+  ctx.save();ctx.translate(x,y);
+  Shade.setLight({ang:-2.15});
+  Shade.contact(blob,{dist:5,alpha:.25});
+  Shade.body(blob,'#5d7d6a',{tex:k,seed:'probe'+i,gloss:k==='metal'||k==='crystal'?.8:.2,rimW:2.2,rimInt:.6});
+  ctx.restore();
+  out.push((k||'none')+' @'+x+','+y);
+});
+Shade.glow(500,300,60,'#7fd8ff',.8); Shade.sparkle(300,200,10,'#fff',.9);
+Shade.post(document.getElementById('c'),ctx,{bloom:.3,vignette:.3});
+out.push('ERRORS: '+(errs.length?errs.join(' | '):'none'));
+out.push('filter support: '+(typeof ctx.filter==='string'));
+document.getElementById('out').textContent=out.join('\n');
+</script></body>
