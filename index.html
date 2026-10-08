@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ゴジラ 怪獣大決戦 — Godzilla: Ten Battles</title>
+<meta name="description" content="Godzilla fights ten classic kaiju across ten levels in a one-file, no-dependency browser fighting game.">
+<style>
+  :root {
+    --ink: #0a0d14;
+    --accent: #ffd75e;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; background: #05070c; color: #dfe8f2;
+    font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
+    overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none;
+  }
+  #wrap {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; gap: 10px; padding: 8px;
+  }
+  #game {
+    background: #0b1020;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 8px;
+    box-shadow: 0 18px 60px rgba(0,0,0,.7);
+    max-width: 100%;
+    height: auto;
+    image-rendering: auto;
+  }
+  #bar {
+    width: min(1024px, 100%);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; color: #7f8fa0; gap: 12px; flex-wrap: wrap;
+  }
+  #bar b { color: var(--accent); font-weight: 700; }
+  #bar .keys { color: #66748a; }
+  #pad {
+    display: none; width: min(1024px, 100%);
+    justify-content: space-between; align-items: flex-end; gap: 10px;
+  }
+  #pad .grp { display: flex; gap: 8px; }
+  #pad button {
+    width: 58px; height: 58px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.07);
+    color: #dfe8f2; font-size: 13px; font-family: inherit;
+  }
+  #pad button.on { background: rgba(255,215,94,.3); border-color: var(--accent); }
+  @media (hover: none) and (pointer: coarse) { #pad { display: flex; } }
+  @media (max-width: 720px) { #bar .keys { display: none; } }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="1024" height="576" aria-label="Godzilla fighting game"></canvas>
+
+  <div id="pad">
+    <div class="grp">
+      <button data-act="left">←</button>
+      <button data-act="right">→</button>
+      <button data-act="guard">ガード</button>
+      <button data-act="jump">↑</button>
+    </div>
+    <div class="grp">
+      <button data-act="start">開始</button>
+      <button data-act="pulse">Q</button>
+      <button data-act="beam">熱線</button>
+      <button data-act="kick">K</button>
+      <button data-act="punch">J</button>
+    </div>
+  </div>
+
+  <div id="bar">
+    <span><b>ゴジラ 怪獣大決戦</b> — 全10ステージ / ten battles, ten kaiju</span>
+    <span class="keys">←→ 移動 ・ ↑ ジャンプ ・ J パンチ ・ K キック ・ ↓ ガード ・ Space 放射熱線 ・ Q 全身放射熱線 ・ K+↓ 踏みつけ ・ ENTER 決定 ・ R やり直し ・ ESC 一時停止</span>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/rig.js"></script>
+<script src="js/art.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/fighter.js"></script>
+<script src="js/player.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
