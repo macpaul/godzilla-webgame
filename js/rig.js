@@ -15,7 +15,8 @@ const Rig = (() => {
 
   /* ---- colour helpers ---- */
   function hex2rgb(h) {
-    const s = h.replace('#', '');
+    let s = h.replace('#', '');
+    if (s.length === 3) s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
     return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)];
   }
   function rgb2hex(c) {
@@ -45,18 +46,15 @@ const Rig = (() => {
   }
 
   /* ---- primitives ---- */
-  function poly(pts, fill, stroke, lw) {
-    ctx.beginPath();
+  /* path building is split out so shade.js can clip to a silhouette and
+     stroke it for rim light without re-filling it */
+  function tracePoly(pts) {
     ctx.moveTo(pts[0][0], pts[0][1]);
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
-    ctx.closePath();
-    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 2; ctx.stroke(); }
   }
 
   /* smooth closed curve through points (Catmull-Rom -> bezier) */
-  function smooth(pts, fill, stroke, lw) {
-    ctx.beginPath();
+  function traceSmooth(pts) {
     const n = pts.length;
     ctx.moveTo(pts[0][0], pts[0][1]);
     for (let i = 0; i < n; i++) {
@@ -66,7 +64,16 @@ const Rig = (() => {
         p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6,
         p2[0], p2[1]);
     }
-    ctx.closePath();
+  }
+
+  function poly(pts, fill, stroke, lw) {
+    ctx.beginPath(); tracePoly(pts); ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 2; ctx.stroke(); }
+  }
+
+  function smooth(pts, fill, stroke, lw) {
+    ctx.beginPath(); traceSmooth(pts); ctx.closePath();
     if (fill) { ctx.fillStyle = fill; ctx.fill(); }
     if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 2; ctx.stroke(); }
   }
@@ -357,7 +364,8 @@ const Rig = (() => {
   return {
     TAU, lerp, clamp, ease, easeOut, wave,
     hex2rgb, rgb2hex, shade, mix, rgba,
-    face, poly, smooth, ellipse, circle, capsule, spike, spikeRow, limb,
+    face, poly, smooth, tracePoly, traceSmooth,
+    ellipse, circle, capsule, spike, spikeRow, limb,
     chain, taperChain, bodyGradient, glow, eye, dorsal, crystal, leafShape, wing,
     pincer, saw, mouth, shadow,
     attackPhase, gait, hurtAmt,
