@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="utf-8"><title>contact-sheet</title>
+<style>body{margin:0;background:#000}</style>
+</head>
+<body>
+<canvas id="c" width="1536" height="1152"></canvas>
+<script src="../js/data.js"></script>
+<script src="../js/rig.js"></script>
+<script src="../js/shade.js"></script>
+<script src="../js/art.js"></script>
+<script>
+/* Contact sheet — not loaded by index.html. Renders every registered
+   kaiju in its own cell over a stage-like backdrop so the art can be
+   inspected as an image. Run:
+     chromium --headless=new --disable-gpu --window-size=1536,1152 \
+       --screenshot=shots_contact.png tools/contact-sheet.html
+   The output PNG matches the shots_*.png gitignore pattern. */
+'use strict';
+const cvs = document.getElementById('c');
+const ctx = cvs.getContext('2d');
+const errs = [];
+window.onerror = (m, s, l) => { errs.push(m + ' @' + l); };
+
+const GOD_FALLBACK = {
+  skin: '#4a6a7a', skin2: '#33505e', belly: '#8fa89a', eye: '#d8b020',
+  fin: '#c8d8c0', accent: '#7fd8ff', glow: '#7fd8ff',
+};
+function defFor(id) {
+  let d = MONSTERS.find(m => m.art === id);
+  if (d) return d;
+  d = MONSTERS.find(m => (m.phases || []).some(p => p.art === id));
+  return d || { palette: GOD_FALLBACK, h: 190, w: 74, stage: { sky: ['#101a26', '#243a4a', '#4a6a72'] } };
+}
+
+const COLS = 6, ROWS = 3, CW = 1536 / COLS, CH = 1152 / ROWS;
+const ids = Object.keys(Art.DRAWERS);
+const t = 1.37;
+
+ids.forEach((id, i) => {
+  const def = defFor(id);
+  const cx = (i % COLS) * CW, cy = Math.floor(i / COLS) * CH;
+  const sky = (def.stage && def.stage.sky) || ['#101a26', '#243a4a', '#4a6a72'];
+  /* stage-ish backdrop: sky gradient, distant haze band, ground */
+  const g = ctx.createLinearGradient(0, cy, 0, cy + CH);
+  g.addColorStop(0, sky[0]); g.addColorStop(0.55, sky[1]); g.addColorStop(1, sky[2]);
+  ctx.fillStyle = g;
+  ctx.fillRect(cx, cy, CW, CH);
+  const gy = cy + CH - 40;
+  ctx.fillStyle = Rig.shade(sky[2], -0.12);
+  ctx.fillRect(cx, gy, CW, CH - (gy - cy));
+  ctx.fillStyle = Rig.rgba(sky[2], 0.35);
+  ctx.fillRect(cx, gy - 26, CW, 26);
+
+  /* light rig for this cell: key from upper-left, stage-tinted */
+  Shade.setLight({ ang: -2.5, key: Rig.mix(sky[2], '#ffffff', 0.45), rim: '#cfe4ff',
+    amb: Rig.shade(sky[0], -0.10), fog: sky[1], fogAmt: 0.35 });
+
+  const h = Math.min(def.h || 190, CH * 0.72);
+  const f = {
+    def, art: id, pal: def.palette || GOD_FALLBACK, h, w: (def.w || 74) * h / (def.h || 190),
+    x: 0, y: 0, facing: 1, vx: 0, airborne: false, shield: false,
+    state: { name: 'idle', t: 0, atk: null, dur: 0.3 },
+  };
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(cx + 4, cy + 4, CW - 8, CH - 8);
+  ctx.clip();
+  ctx.translate(cx + CW * 0.52, gy);
+  try { Art.draw(f, t); } catch (e) { errs.push(id + ': ' + e.message); }
+  ctx.restore();
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  ctx.font = '16px monospace';
+  ctx.fillText(id + '  ' + (def.ja || ''), cx + 10, cy + 22);
+});
+if (errs.length) {
+  ctx.fillStyle = '#ff4040';
+  ctx.font = '18px monospace';
+  ctx.fillText(errs.join(' | ').slice(0, 1500), 12, 1140);
+}
+document.title = errs.length ? 'ERRORS' : 'OK';
+</script>
+</body>
+</html>
