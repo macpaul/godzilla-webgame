@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="utf-8"><title>battle-shot</title>
+<style>html,body{margin:0;background:#05070c;overflow:hidden}</style>
+</head>
+<body>
+<canvas id="game" width="1024" height="576"></canvas>
+<script src="../../js/data.js"></script>
+<script src="../../js/audio.js"></script>
+<script src="../../js/input.js"></script>
+<script src="../../js/fx.js"></script>
+<script src="../../js/rig.js"></script>
+<script src="../../js/shade.js"></script>
+<script src="../../js/art.js"></script>
+<script src="../../js/ai.js"></script>
+<script src="../../js/fighter.js"></script>
+<script src="../../js/player.js"></script>
+<script src="../../js/ui.js"></script>
+<script src="../../js/game.js"></script>
+<script>
+/* Probe — not shipped. Drives the title screen with synthetic keys so a
+   headless screenshot lands inside a real battle frame. Run:
+     chromium --headless=new --disable-gpu --window-size=1024,576 \
+       --virtual-time-budget=6000 --screenshot=shots_battle.png \
+       tools/probe/battle-shot.html
+   The output PNG matches the shots_*.png gitignore pattern. */
+function key(code) {
+  dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true }));
+  setTimeout(() => dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true, cancelable: true })), 60);
+}
+const at = (ms, fn) => setTimeout(fn, ms);
+at(400, () => key('Enter'));      /* title -> intro */
+at(1400, () => key('Enter'));     /* intro -> fight */
+at(2400, () => key('KeyD'));      /* walk forward */
+at(3200, () => key('KeyJ'));      /* punch */
+at(3900, () => key('Space'));     /* breath attack */
+</script>
+</body>
+</html>
