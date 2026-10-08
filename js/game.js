@@ -92,8 +92,38 @@ const Game = (() => {
     return out;
   }
 
+  /* Per-stage light rig. Shade.body reads the key/rim/ambient triple for
+     form shading and Shade.far uses fog to push distance back, so the
+     stage sets the lighting and every kaiju inherits it. */
+  const STAGE_LIGHT = {
+    ruins: { ang: -2.60, key: '#9ab2c8', rim: '#cfe0ff', amb: '#2a2030', fog: '#3a2436', fogAmt: 0.30,
+      post: { bloom: 0.34, vignette: 0.36, grade: ['#4a6a8a', '#7a4a3a'] } },
+    sea: { ang: -0.95, key: '#cfe8f0', rim: '#eaf6ff', amb: '#16283a', fog: '#1e3a52', fogAmt: 0.40,
+      post: { bloom: 0.40, vignette: 0.32, grade: ['#5fd0ff', '#3a6a8a'] } },
+    mountain: { ang: -2.30, key: '#ffb878', rim: '#ffd8a0', amb: '#241a2a', fog: '#3a2a3a', fogAmt: 0.35,
+      post: { bloom: 0.42, vignette: 0.34, grade: ['#6a5a8a', '#ff8a4a'] } },
+    island: { ang: -2.45, key: '#e2f0f4', rim: '#ffffff', amb: '#1a2a3a', fog: '#2a4a6a', fogAmt: 0.45,
+      post: { bloom: 0.45, vignette: 0.28, grade: ['#7fe0ff', '#6a8a5a'] } },
+    city: { ang: -2.70, key: '#a2a8cc', rim: '#d8e4ff', amb: '#1a1428', fog: '#2a2038', fogAmt: 0.35,
+      post: { bloom: 0.36, vignette: 0.36, grade: ['#5fd0ff', '#c06a4a'] } },
+    smog: { ang: -2.05, key: '#a8b894', rim: '#d0e0b0', amb: '#20241c', fog: '#2e3628', fogAmt: 0.55,
+      post: { bloom: 0.26, vignette: 0.40, grade: ['#8ab070', '#4a5a3a'] } },
+    lake: { ang: -2.50, key: '#bcd4e4', rim: '#e0f0ff', amb: '#16222e', fog: '#243a4a', fogAmt: 0.42,
+      post: { bloom: 0.38, vignette: 0.34, grade: ['#5fb8ff', '#3a5a6a'] } },
+    tower: { ang: -2.80, key: '#a4bce4', rim: '#d0e8ff', amb: '#101a2e', fog: '#1e2a4a', fogAmt: 0.45,
+      post: { bloom: 0.46, vignette: 0.36, grade: ['#6fd8ff', '#4a5a9a'] } },
+    bay: { ang: -2.20, key: '#e89080', rim: '#ffc0a0', amb: '#2a1016', fog: '#3a1a22', fogAmt: 0.35,
+      post: { bloom: 0.36, vignette: 0.38, grade: ['#7a5a8a', '#ff6a4a'] } },
+  };
+  let gPost = { bloom: 0.34, vignette: 0.34 };
+
   function drawStage(def, t) {
     const sky = def.stage.sky;
+    const L = STAGE_LIGHT[def.stage.bg] || STAGE_LIGHT.city;
+    gPost = L.post;
+    Shade.setLight({ ang: L.ang, key: L.key, rim: L.rim, amb: L.amb,
+      fog: L.fog, fogAmt: L.fogAmt });
+
     const grad = ctx.createLinearGradient(0, 0, 0, GROUND + 40);
     grad.addColorStop(0, sky[0]);
     grad.addColorStop(0.55, sky[1]);
@@ -132,7 +162,7 @@ const Game = (() => {
        heavy hits knock the windows out and leave the blocks leaning */
     if (bg === 'city' || bg === 'tower' || bg === 'ruins') {
       const list = layout(def);
-      const body = Rig.shade(sky[1], -0.35);
+      const body = Rig.shade(sky[1], -0.20);
       for (let i = 0; i < list.length; i++) {
         const b = list[i];
         const d = g.city[i] || { dmg: 0, lean: 0 };
@@ -194,13 +224,21 @@ const Game = (() => {
 
     /* ground slab */
     const gg = ctx.createLinearGradient(0, GROUND, 0, H);
-    gg.addColorStop(0, Rig.shade(sky[2], -0.4));
-    gg.addColorStop(1, Rig.shade(sky[0], -0.3));
+    gg.addColorStop(0, Rig.shade(sky[2], -0.26));
+    gg.addColorStop(1, Rig.shade(sky[0], -0.16));
     ctx.fillStyle = gg;
     ctx.fillRect(0, GROUND, W, H - GROUND);
     ctx.strokeStyle = 'rgba(255,255,255,.10)';
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(0, GROUND + 0.5); ctx.lineTo(W, GROUND + 0.5); ctx.stroke();
+
+    /* aerial perspective: a fog band sitting on the horizon line, so the
+       skyline reads as behind the fighters instead of next to them */
+    const hz = ctx.createLinearGradient(0, GROUND - 200, 0, GROUND + 8);
+    hz.addColorStop(0, Rig.rgba(L.fog, 0));
+    hz.addColorStop(1, Rig.rgba(L.fog, L.fogAmt * 0.55));
+    ctx.fillStyle = hz;
+    ctx.fillRect(0, GROUND - 200, W, 208);
   }
 
   function R_leaf(x, y, len, wid, rot) {
@@ -788,6 +826,11 @@ const Game = (() => {
     FX.drawProjectiles();
     FX.drawParticles();
     ctx.restore();
+
+    /* the whole world gets one grade/bloom/vignette pass before any HUD
+       is drawn on top, which is what keeps the frame looking rendered
+       rather than assembled */
+    Shade.post(canvas, ctx, gPost);
 
     if (g.haze > 0) {
       ctx.fillStyle = 'rgba(150,180,90,' + clamp(g.haze * 0.12, 0, 0.42) + ')';
