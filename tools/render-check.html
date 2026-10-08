@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="utf-8"><title>render-check</title>
+<style>body{background:#000;color:#ccc;font:11px/1.12 monospace;white-space:pre}</style>
+</head>
+<body>
+<canvas id="c" width="1024" height="576"></canvas>
+<pre id="out">running…</pre>
+<script src="../js/data.js"></script>
+<script src="../js/rig.js"></script>
+<script src="../js/shade.js"></script>
+<script src="../js/art.js"></script>
+<script>
+/* Headless art harness — not loaded by index.html. Run:
+     chromium --headless=new --disable-gpu --dump-dom tools/render-check.html
+   Draws every registered kaiju over its own stage sky, then prints
+   pixel stats plus an ASCII silhouette so a text-only agent can see
+   whether the shape actually reads. */
+'use strict';
+const cvs = document.getElementById('c');
+const ctx = cvs.getContext('2d');
+const out = [];
+const errs = [];
+window.onerror = (m, s, l) => { errs.push(m + ' @' + l); };
+
+const GOD_FALLBACK = {
+  skin: '#4a6a7a', skin2: '#33505e', belly: '#8fa89a', eye: '#d8b020',
+  fin: '#c8d8c0', accent: '#7fd8ff', glow: '#7fd8ff',
+};
+
+function defFor(id) {
+  let d = MONSTERS.find(m => m.art === id);
+  if (d) return d;
+  d = MONSTERS.find(m => (m.phases || []).some(p => p.art === id));
+  return d || { palette: GOD_FALLBACK, h: 190, w: 74, stage: null };
+}
+
+function mkFighter(def, id) {
+  return {
+    def, art: id, pal: def.palette, h: def.h, w: def.w,
+    x: 0, y: 0, facing: 1, vx: 0, airborne: false, shield: false,
+    state: { name: 'idle', t: 0, atk: null, dur: 0.3 },
+  };
+}
+
+/* coverage of the box, mapped through an ASCII ramp */
+function ascii(x0, y0, bw, bh, cols, rows) {
+  const img = ctx.getImageData(x0, y0, bw, bh).data;
+  const ramp = ' .:-=+*#%@';
+  const cw = bw / cols, ch = bh / rows;
+  let s = '';
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      let cov = 0, n = 0;
+      const xa = Math.floor(c * cw), xb = Math.floor((c + 1) * cw);
+      const ya = Math.floor(r * ch), yb = Math.floor((r + 1) * ch);
+      for (let y = ya; y < Math.max(yb, ya + 1); y++) {
+        for (let x = xa; x < Math.max(xb, xa + 1); x++) {
+          n++;
+          if (img[(y * bw + x) * 4 + 3] > 10) cov++;
+        }
+      }
+      s += ramp[Math.min(9, Math.floor(cov / n * 9.99))];
+    }
+    s += '\n';
+  }
+  return s;
+}
+
+function stats(x0, y0, bw, bh) {
+  const img = ctx.getImageData(x0, y0, bw, bh).data;
+  const uniq = new Set();
+  let cov = 0, maxA = 0;
+  for (let i = 0; i < img.length; i += 4) {
+    if (img[i + 3] > 10) {
+      cov++;
+      uniq.add((img[i] >> 4) + ',' + (img[i + 1] >> 4) + ',' + (img[i + 2] >> 4));
+      if (img[i + 3] > maxA) maxA = img[i + 3];
+    }
+  }
+  return { pct: (cov / (bw * bh) * 100).toFixed(1), uniq: uniq.size, maxA };
+}
+
+for (const id of Object.keys(Art.DRAWERS)) {
+  const def = defFor(id);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  /* transparent canvas: alpha == the kaiju silhouette, so the ASCII dump
+     shows the shape itself rather than the backdrop */
+  ctx.clearRect(0, 0, W, H);
+
+  const f = mkFighter(def, id);
+  const bh = f.h, bw = Math.round(f.h * 1.6);
+  const bx = Math.round((W - bw) / 2), by = GROUND - bh;
+  ctx.save();
+  ctx.translate(W / 2, GROUND);
+  try { Art.draw(f, 1.37); } catch (e) { errs.push(id + ': ' + e.message); }
+  ctx.restore();
+
+  const st = stats(bx, by, bw, bh);
+  out.push('### ' + id + '  h=' + f.h + '  cover=' + st.pct + '%  colors=' + st.uniq + '  maxA=' + st.maxA);
+  out.push(ascii(bx, by, bw, bh, 78, 34));
+}
+out.push('ERRORS: ' + (errs.length ? errs.join(' | ') : 'none'));
+document.getElementById('out').textContent = out.join('\n');
+document.title = errs.length ? 'ERRORS' : 'OK';
+</script>
+</body>
+</html>
